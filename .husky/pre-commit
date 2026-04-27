@@ -1,0 +1,65 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+staged_cs=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.cs$' || true)
+
+echo "\n📐 Checking code format..."
+echo "File difference"
+echo "$staged_cs"
+
+
+# ── 1. dotnet format ──────────────────────────────────────────────────────────
+echo "\n📐 Checking code format..."
+if [ -n "$staged_cs" ]; then
+  include_args=$(echo "$staged_cs" | tr '\n' ' ')
+  dotnet format webapi.sln --verify-no-changes --severity warn --include $include_args
+  if [ $? -ne 0 ]; then
+    echo "❌ Code format issues found. Run: dotnet format"
+    exit 1
+  fi
+  echo "✅ Format OK"
+else
+  echo "✅ No C# files changed, skipping format check"
+fi
+
+# ── 2. Build ──────────────────────────────────────────────────────────────────
+echo "\n🔨 Building solution..."
+if [ -n "$staged_cs" ]; then
+  if build_output=$(dotnet build webapi.sln --no-restore --no-incremental 2>&1); then
+    grep_pattern=$(echo "$staged_cs" | tr '\n' '|' | sed 's/|$//')
+    staged_warnings=$(echo "$build_output" | grep "warning" | grep -E "$grep_pattern" | sort -u || true)
+
+    if [ -n "$staged_warnings" ]; then
+      echo "$staged_warnings"
+      echo "❌ Compiler warnings found in staged files."
+      exit 1
+    fi
+    echo "✅ Build OK"
+  else
+    echo "$build_output"
+    echo "❌ Build failed. Fix compiler errors before committing."
+    exit 1
+  fi
+else
+  if build_output=$(dotnet build webapi.sln --no-restore --no-incremental 2>&1); then
+    echo "✅ Build OK"
+  else
+    echo "$build_output"
+    echo "❌ Build failed. Fix compiler errors before committing."
+    exit 1
+  fi
+fi
+
+# ── 3. Unit Tests ─────────────────────────────────────────────────────────────
+echo "\n🧪 Running unit tests..."
+# dotnet test webapi.sln --verbosity quiet
+husky run --name test
+if [ $? -ne 0 ]; then
+  echo "❌ Unit tests failed. Fix failing tests before committing."
+  exit 1
+fi
+echo "✅ Tests OK"
+
+echo "\n✅ All checks passed!\n"

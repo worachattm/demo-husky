@@ -1,0 +1,22 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+COMMIT_MSG_FILE=$1
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || true)
+
+case "$BRANCH" in
+  ticket/*)
+    TICKET=$(echo "$BRANCH" | grep -ioE '[A-Z][A-Z0-9]*-[0-9]+' | tr '[:lower:]' '[:upper:]' || true)
+    if [ -n "$TICKET" ]; then
+      if ! sed -i.bak "1s/^/[$TICKET] /" "$COMMIT_MSG_FILE" 2>&1; then
+        echo "Error: failed to update commit message file '$COMMIT_MSG_FILE'" >&2
+        exit 1
+      fi
+      rm -f "${COMMIT_MSG_FILE}.bak"
+    else
+      echo "Warning: branch '$BRANCH' matches ticket/* but no ticket ID found" >&2
+    fi
+    ;;
+esac
+
+exit 0
