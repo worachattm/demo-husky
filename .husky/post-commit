@@ -1,22 +1,18 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-## husky task runner examples -------------------
-## Note : for local installation use 'dotnet' prefix. e.g. 'dotnet husky'
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
+HASH=$(git log -1 --format="%h" 2>/dev/null)
+MSG=$(git log -1 --format="%s" 2>/dev/null)
 
-## run all tasks
-#husky run
-
-### run all tasks with group: 'group-name'
-#husky run --group group-name
-
-## run task with name: 'task-name'
-#husky run --name task-name
-
-## pass hook arguments to task
-#husky run --args "$1" "$2"
-
-## or put your custom commands -------------------
-#echo 'Husky.Net is awesome!'
-
-echo 'hello world'
+echo ""
+echo "╔════════════════════════════════════════╗"
+echo "║         ✅  Commit Successful!          ║"
+echo "╚════════════════════════════════════════╝"
+echo ""
+echo "  🌿 Branch  : $BRANCH"
+echo "  🔖 Hash    : $HASH"
+echo "  💬 Message : $MSG"
+echo ""
+echo "  🚀 Keep up the good work!"
+echo ""
